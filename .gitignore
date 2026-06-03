@@ -1,0 +1,33 @@
+
+# Secrets and local environment
+.env
+*.env
+*/.env
+
+# OS/editor noise
+.DS_Store
+.vscode/
+.idea/
+
+# Python generated files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python environments
+.venv/
+venv/
+env/
+
+# Runtime logs and process files
+*.log
+*.pid
+backend_server.*.log
+backend_server.pid
+uvicorn.*.log
+uvicorn.pid
+
+# Test/cache output
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/

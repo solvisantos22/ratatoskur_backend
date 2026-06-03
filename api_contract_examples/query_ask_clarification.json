@@ -1,0 +1,39 @@
+{
+  "verdict": "unclear",
+  "response_type": "ask_clarification",
+  "message_is": "Ég get ekki lesið lausnina nægilega skýrt. Skrifaðu skrefin skýrar og sendu aftur.",
+  "error_type": "",
+  "error_step": "",
+  "correct_approach": "",
+  "error_confidence": null,
+  "all_readable": false,
+  "ambiguous_steps": [
+    {
+      "page": 1,
+      "snippet": null,
+      "reason": "lausnin er of óskýr til að staðfesta lestur"
+    }
+  ],
+  "ambiguous_regions": [
+    {
+      "page": 1,
+      "snippet": null,
+      "reason": "lausnin er of óskýr til að staðfesta lestur"
+    }
+  ],
+  "expert_mode": "off",
+  "observability": {
+    "traceId": "trace-clarify",
+    "observationId": "observation-clarify",
+    "messageId": null,
+    "requestId": "request-clarify",
+    "modelName": "gemini:test",
+    "promptVersion": "legibility/v4/prompt.txt",
+    "retryCount": 0,
+    "routingProvider": "gemini",
+    "routingRouteIndex": 0,
+    "routingFallbackUsed": false,
+    "clientRequestId": "client-clarify",
+    "sessionId": "session-contract"
+  }
+}

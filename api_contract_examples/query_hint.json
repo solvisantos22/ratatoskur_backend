@@ -1,0 +1,20 @@
+{
+  "verdict": "correct_so_far",
+  "response_type": "hint",
+  "message_is": "Prófaðu að einangra x með því að draga 3 frá báðum megin.",
+  "expert_mode": "off",
+  "observability": {
+    "traceId": "trace-hint",
+    "observationId": "observation-hint",
+    "messageId": null,
+    "requestId": "request-hint",
+    "modelName": "gemini:test",
+    "promptVersion": "modes/v6/hint/prompt.txt",
+    "retryCount": 0,
+    "routingProvider": "gemini",
+    "routingRouteIndex": 0,
+    "routingFallbackUsed": false,
+    "clientRequestId": "client-hint",
+    "sessionId": "session-contract"
+  }
+}

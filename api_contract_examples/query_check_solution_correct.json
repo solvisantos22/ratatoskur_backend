@@ -1,0 +1,20 @@
+{
+  "verdict": "fully_correct",
+  "response_type": "check_solution",
+  "message_is": "Lausnin er rétt og skrefin eru skýr.",
+  "expert_mode": "off",
+  "observability": {
+    "traceId": "trace-check",
+    "observationId": "observation-check",
+    "messageId": null,
+    "requestId": "request-check",
+    "modelName": "gemini:test",
+    "promptVersion": "modes/v6/check_solution/prompt.txt",
+    "retryCount": 0,
+    "routingProvider": "gemini",
+    "routingRouteIndex": 0,
+    "routingFallbackUsed": false,
+    "clientRequestId": "client-check",
+    "sessionId": "session-contract"
+  }
+}

@@ -1,0 +1,64 @@
+You will receive:
+- one problem image
+- an image of a student solution
+- icelandic text describing error in solution
+
+TASK:
+1) Identify the error described
+2) Classify the error type into excactly one of the following
+- conceptual_error (misunderstanding of the underlying mathematical concept)
+- rule_application_error (formula or rule used incorrectly or in the wrong context)
+- procedural_error (correct method chosen but steps executed incorrectly)
+- arithmetic_error (basic numerical calculation mistake)
+- sign_notation_copying_error (incorrect sign, symbol, exponent, or copied term)
+- interpretation_error (misreading the problem or solving for the wrong quantity)
+- incomplete_reasoning (missing, skipped, or logically invalid steps)
+- ambiguous_error (insufficient or unclear information to classify confidently)
+3) Identify the topic & subtopic
+- topic:
+  Broad mathematical concept area, usually aligned with the concept involved
+  Examples: "linear_equations", "order_of_operations", "fraction_arithmetic", "common_denominator", "fraction_simplification"
+- subtopic: set as None
+4) Return one bounding box around the first wrong handwritten step
+- Include the 1-indexed `page` where the error appears
+- Use normalized coordinates relative to the full student-solution image
+- Coordinates must be floats from 0.0 to 1.0
+- Use this shape: {"page": 1, "x_min": 0.0, "y_min": 0.0, "x_max": 0.0, "y_max": 0.0}
+- The box must be tight around the first wrong step, not the whole page
+- If you cannot localize the error confidently, return null for `error_box`
+5) Summarize the wrong step and the correct step concisely with enough context to understand error from those steps.
+6) Estimate confidence from 0.0 to 1.0
+
+CLASSIFICATION RULES:
+- Prefer precise classification over vague wording
+- The bounding box must point to the first wrong step, not a later downstream consequence
+- Never invent coordinates for an error you cannot visually localize
+
+LANGUAGE:
+- `wrong_step` and `correct_step` must be in Icelandic
+- `topic` and `subtopic` may be machine-friendly concise labels
+- Be concise
+- Write the answer in Icelandic as plain text with MathJax-compatible LaTeX. Use only `\(...\)`.
+
+OUTPUT JSON ONLY:
+{
+  "topic": "string",
+  "subtopic": "string",
+  "wrong_step": "string",
+  "correct_step": "string",
+  "error_type": "string",
+  "error_box": {
+    "page": 1,
+    "x_min": 0.0,
+    "y_min": 0.0,
+    "x_max": 0.0,
+    "y_max": 0.0
+  },
+  "confidence": 0.0
+}
+
+HARD CONSTRAINTS:
+- `error_box` must either be null or a single tight box around the first wrong handwritten step
+- If `error_box` is present, `page` must be a 1-indexed integer
+- If `error_box` is present, all coordinates must be normalized floats between 0.0 and 1.0
+- If `error_box` is present, it must satisfy `x_min < x_max` and `y_min < y_max`

@@ -1,0 +1,29 @@
+You generate one exam item for math exam prep.
+
+Inputs:
+- topic
+- difficulty
+- target_error_type
+- target_concept_tag
+
+Requirements:
+- Return JSON only.
+- Produce one clear, self-contained question.
+- Question must be solvable and aligned with the target error pattern.
+- Provide answer_format and correct_answer.
+- Include grading_rubric with concise grading rules.
+
+Output schema:
+{
+  "question_text": "Solve for x: 3x - 5 = 10",
+  "answer_format": "numeric",
+  "correct_answer": {
+    "value": "5",
+    "acceptable_answers": ["5"]
+  },
+  "grading_rubric": {
+    "accept_equivalent": true
+  },
+  "target_error_type": "sign_error",
+  "target_concept_tag": "linear_equations"
+}

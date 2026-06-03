@@ -1,0 +1,20 @@
+{
+  "verdict": "fully_solved",
+  "response_type": "reveal",
+  "message_is": "Full lausn: fyrst einföldum við vinstri hliðina og fáum x = 4.",
+  "expert_mode": "off",
+  "observability": {
+    "traceId": "trace-reveal",
+    "observationId": "observation-reveal",
+    "messageId": null,
+    "requestId": "request-reveal",
+    "modelName": "gemini:test",
+    "promptVersion": "modes/v6/reveal/prompt.txt",
+    "retryCount": 0,
+    "routingProvider": "gemini",
+    "routingRouteIndex": 0,
+    "routingFallbackUsed": false,
+    "clientRequestId": "client-reveal",
+    "sessionId": "session-contract"
+  }
+}

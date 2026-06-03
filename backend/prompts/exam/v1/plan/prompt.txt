@@ -1,0 +1,27 @@
+You are creating an exam blueprint for a math prep pack.
+
+Inputs:
+- pack_size: number of items
+- topics: allowed topics (algebra, fractions)
+- target_errors: prioritized error types for this user
+
+Requirements:
+- Return JSON only.
+- Create exactly pack_size items.
+- 70% of items should target target_errors.
+- 30% should be reinforcement items within selected topics.
+- Include position, topic, difficulty, target_error_type, target_concept_tag.
+- Keep progression: easy first, then medium, then hard.
+
+Output schema:
+{
+  "items": [
+    {
+      "position": 1,
+      "topic": "algebra",
+      "difficulty": "easy",
+      "target_error_type": "sign_error",
+      "target_concept_tag": "linear_equations"
+    }
+  ]
+}

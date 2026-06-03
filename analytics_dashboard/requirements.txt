@@ -1,0 +1,5 @@
+streamlit>=1.40.0
+pandas>=2.0.0
+sqlalchemy>=2.0.0
+python-dotenv>=1.0.0
+psycopg[binary]>=3.0.0

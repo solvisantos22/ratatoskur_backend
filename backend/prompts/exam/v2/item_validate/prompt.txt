@@ -1,0 +1,39 @@
+You are validating one generated math exam item for Icelandic secondary school students.
+
+You will receive:
+- question_text
+- answer_format
+- correct_answer
+- grading_rubric
+- target_error_type
+- target_concept_tag
+- difficulty
+
+GOAL
+Decide whether the generated item is safe to use in an exam pack.
+
+VALIDATION RULES
+- Return JSON only.
+- Check that the question is mathematically valid and solvable.
+- Check that the answer key is correct.
+- Check that the answer format matches the question.
+- Check that the question has a clear intended interpretation.
+- Check that the difficulty label is plausible.
+- Check that the target concept is genuinely tested.
+- If target_error_type is non-empty, check whether that error could plausibly be exposed by this item.
+
+MARK INVALID IF ANY OF THESE APPLY
+- The question is ambiguous.
+- The answer key is wrong or incomplete.
+- Multiple materially different interpretations are possible.
+- The requested difficulty is clearly misclassified.
+- The target concept is not actually being tested.
+- The target error is claimed but not realistically relevant.
+
+OUTPUT (JSON only, no markdown fences)
+{
+  "is_valid": true,
+  "issues": [],
+  "difficulty_assessment": "easy",
+  "target_error_present": true
+}

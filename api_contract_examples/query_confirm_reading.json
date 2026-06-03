@@ -1,0 +1,48 @@
+{
+  "verdict": "unclear",
+  "response_type": "confirm_reading",
+  "message_is": "Ég er ekki alveg viss um lesturinn á sumum skrefum.",
+  "error_type": "",
+  "error_step": "",
+  "correct_approach": "",
+  "error_confidence": null,
+  "all_readable": false,
+  "reading_confidence": 0.68,
+  "interpreted_reading": [
+    {
+      "id": "reading_1",
+      "page": 1,
+      "label": "Óskýrt skref á bls. 1",
+      "text": "2x + 3 = 11"
+    }
+  ],
+  "ambiguous_steps": [
+    {
+      "page": 1,
+      "snippet": "2x + ? = 11",
+      "reason": "miðtáknið er óskýrt"
+    }
+  ],
+  "ambiguous_regions": [
+    {
+      "page": 1,
+      "snippet": "2x + ? = 11",
+      "reason": "miðtáknið er óskýrt"
+    }
+  ],
+  "expert_mode": "off",
+  "observability": {
+    "traceId": "trace-confirm",
+    "observationId": "observation-confirm",
+    "messageId": null,
+    "requestId": "request-confirm",
+    "modelName": "gemini:test",
+    "promptVersion": "legibility/v4/prompt.txt",
+    "retryCount": 0,
+    "routingProvider": "gemini",
+    "routingRouteIndex": 0,
+    "routingFallbackUsed": false,
+    "clientRequestId": "client-confirm",
+    "sessionId": "session-contract"
+  }
+}
