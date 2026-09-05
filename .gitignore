@@ -31,3 +31,5 @@ uvicorn.pid
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.local/
+test_contract.db

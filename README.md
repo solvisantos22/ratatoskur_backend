@@ -25,6 +25,19 @@ Ratatoskur is being developed toward:
 - Backend + analytics dashboard + product/research artifacts: `ratatoskur_backend`
 - Frontend iOS SwiftUI app: `ratatoskur_ios`
 
+## Shared Development Workflow
+
+Sölvi and Jóhannes work in these repositories together. Fetch both repositories
+before starting work, pull incoming changes on the active branch, and check for
+updates again before pushing. If a shared branch has diverged, merge its incoming
+commits and check the combined result; do not force-push or rewrite teammates'
+history. Bring relevant updates from `main` into feature branches as work proceeds.
+
+Commit and push small, checked milestones regularly, including at the end of a
+work session. Share work on feature branches while Xcode/device review is pending,
+and describe any checks still outstanding. Coordinate API changes across both
+repositories. Keep product decisions and meeting materials in Notion.
+
 ## Project Structure
 
 - `backend/`: FastAPI app, auth, query routes, SQLModel models, Alembic migrations, LLM integration.
@@ -34,28 +47,31 @@ Ratatoskur is being developed toward:
 
 ## Backend Setup
 
-1. Create env file:
-   - Copy `backend/.env.example` to `backend/.env`
-2. Install dependencies:
-   - `pip install -r backend/requirements.txt`
-3. Run migrations:
-   - `cd backend && alembic upgrade head`
-4. Start backend:
-   - `fastapi dev backend/main.py`
+For the local classroom demo, see [the classroom guide](docs/classroom-demo.md).
+`bash scripts/dev_classroom.sh` starts both the backend and teacher website. It
+creates a fresh local SQLite database and private signing keys on first use.
+Use Python 3.12, Node.js 22.13+ and pnpm; the launcher can also locate the Codex
+bundled runtimes on this Mac.
+
+For an existing PostgreSQL deployment, set `DATABASE_URL`, `JWT_SECRET` and R2
+configuration in `backend/.env`, install `backend/requirements.txt`, then run
+`cd backend && alembic upgrade head`. The local setup script deliberately does
+not initialize or migrate an existing production database.
 
 Default backend URL: `http://127.0.0.1:8000`
 
 ## Backend Environment Variables
 
-Required from `backend/.env.example`:
+Shared configuration in `backend/.env.example`:
 
 - `DATABASE_URL`
 - `JWT_SECRET`
-- `GEMINI_API_KEY`
-- `R2_ACCOUNT_ID`
-- `R2_ACCESS_KEY_ID`
-- `R2_SECRET_ACCESS_KEY`
-- `R2_BUCKET_NAME`
+- `TEACHER_EMAILS`: administrator-provisioned teacher account emails
+- `GEMINI_API_KEY`: required for actual AI feedback, optional for class management
+- `STORAGE_BACKEND=local`: uses `LOCAL_STORAGE_DIR`, a strong
+  `LOCAL_STORAGE_SIGNING_SECRET`, and `PUBLIC_BASE_URL` reachable from the iPad
+- `STORAGE_BACKEND=r2` (default): requires `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
+  `R2_SECRET_ACCESS_KEY`, and `R2_BUCKET_NAME`
 
 Optional:
 
@@ -145,13 +161,22 @@ GitHub issue creation env vars:
 - `GITHUB_TOKEN`
 - `GITHUB_REPO` in `owner/repo` format
 
-## Frontend Setup
+## Student App and Teacher Website
+
+The local teacher website is in `teacher_portal/`. Start it with the combined
+launcher above, or `cd teacher_portal && pnpm dev` while the backend runs on
+port 8000. `BACKEND_URL` selects the website server's backend; the browser uses
+a same-origin bridge and the existing Ratatoskur login.
 
 In `ratatoskur_ios`:
 
 1. Open project in Xcode.
-2. Set backend base URL.
+2. Set the backend address from the login screen for the intended laptop.
 3. Build/run app.
+
+Students join with the class code under **Bekkurinn minn**, then open an assigned
+exercise in the existing notebook. Teachers can see submitted work from these
+assigned notebooks; unrelated personal notebooks remain outside classroom access.
 
 ## Notes
 
