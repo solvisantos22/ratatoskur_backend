@@ -138,7 +138,10 @@ def is_refresh_token_valid(rt: RefreshToken) -> bool:
     now = utcnow()
     if rt.revoked_at is not None:
         return False
-    if rt.expires_at <= now:
+    expires_at = rt.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at <= now:
         return False
     return True
 

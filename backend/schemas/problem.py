@@ -17,6 +17,9 @@ class ProblemCreateResponse(BaseModel):
     title: str
     created_at: datetime
     updated_at: datetime
+    assignment_id: UUID | None = None
+    assignment_item_id: UUID | None = None
+    assignment_image_url: str | None = None
 
 
 class FolderCreateRequest(BaseModel):

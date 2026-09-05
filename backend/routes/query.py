@@ -28,7 +28,8 @@ from backend.models.auth_models import (
     Problem,
     User,
 )
-from backend.storage.r2 import R2ConfigurationError, upload_bytes
+from backend.storage.r2 import R2ConfigurationError, download_bytes, upload_bytes
+from backend.repositories.classroom_repo import assignment_item_for_problem
 
 router = APIRouter(tags=["query"])
 
@@ -1164,17 +1165,29 @@ async def query(
         drawing_pages_bytes=drawing_pages_bytes,
     )
 
+    problem = session.exec(
+        select(Problem).where(Problem.id == problem_id, Problem.user_id == user.id)
+    ).first()
+    if not problem:
+        raise HTTPException(status_code=404, detail="Problem not found")
+
+    if not os.getenv("GEMINI_API_KEY", "").strip():
+        raise HTTPException(status_code=503, detail="AI feedback is not configured: set GEMINI_API_KEY on the backend.")
+
+    assigned_item = assignment_item_for_problem(session, problem_id=problem.id, user_id=user.id)
+    if assigned_item:
+        try:
+            prob_bytes = download_bytes(key=assigned_item.image_key)
+        except R2ConfigurationError as exc:
+            raise HTTPException(status_code=503, detail=f"Assignment image storage is not configured: {exc}") from exc
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail="The assigned exercise image could not be loaded. Please try again.") from exc
     prob_pil = _to_pil_image(prob_image, prob_bytes)
     solution_pil_pages = [
         _to_pil_image(upload, page_bytes)
         for upload, page_bytes in zip(solution_uploads, solution_pages_bytes)
     ]
     preprocess_latency_ms = int((time.perf_counter() - preprocess_started_perf) * 1000)
-    problem = session.exec(
-        select(Problem).where(Problem.id == problem_id, Problem.user_id == user.id)
-    ).first()
-    if not problem:
-        raise HTTPException(status_code=404, detail="Problem not found")
 
     header_client_request_id = request.headers.get("x-client-request-id")
     header_session_id = request.headers.get("x-session-id")
@@ -1491,7 +1504,8 @@ async def query(
 
     merged_solution_bytes = _merge_solution_pages_for_artifact(solution_pil_pages)
     base_key = f"users/{user.id}/problems/{problem.id}/attempts/{attempt_id}"
-    problem_image_key = f"{base_key}/problem_image{_safe_suffix(prob_image, '.png')}"
+    problem_image_suffix = ".jpg" if assigned_item else _safe_suffix(prob_image, ".png")
+    problem_image_key = f"{base_key}/problem_image{problem_image_suffix}"
     solution_image_key = f"{base_key}/solution_image.png"
     drawing_data_key = f"{base_key}/drawing_data_manifest.json"
     solution_page_artifacts = [
@@ -1528,7 +1542,7 @@ async def query(
         upload_bytes(
             key=problem_image_key,
             data=prob_bytes,
-            content_type=prob_image.content_type or "application/octet-stream",
+            content_type="image/jpeg" if assigned_item else (prob_image.content_type or "application/octet-stream"),
         )
         upload_bytes(
             key=solution_image_key,

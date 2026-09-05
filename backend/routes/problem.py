@@ -52,6 +52,7 @@ from backend.schemas.problem import (
     UserStatsSummaryResponse,
 )
 from backend.storage.r2 import R2ConfigurationError, presigned_get_url
+from backend.repositories.classroom_repo import assignment_item_for_problem
 
 router = APIRouter(tags=["problem"])
 logger = logging.getLogger(__name__)
@@ -179,15 +180,19 @@ def _validate_parent_folder(
     return parent_folder
 
 
-def _problem_response(problem: Problem, folder_name: str | None) -> ProblemCreateResponse:
+def _problem_response(problem: Problem, folder_name: str | None, *, session: Session) -> ProblemCreateResponse:
+    item = assignment_item_for_problem(session, problem_id=problem.id, user_id=problem.user_id)
     return ProblemCreateResponse(
         id=problem.id,
         user_id=problem.user_id,
         folder_id=problem.folder_id,
         folder_name=folder_name,
         title=problem.title or "",
-        created_at=problem.created_at,
-        updated_at=problem.updated_at,
+        created_at=problem.created_at.replace(tzinfo=timezone.utc) if problem.created_at.tzinfo is None else problem.created_at,
+        updated_at=problem.updated_at.replace(tzinfo=timezone.utc) if problem.updated_at.tzinfo is None else problem.updated_at,
+        assignment_id=item.assignment_id if item else None,
+        assignment_item_id=item.id if item else None,
+        assignment_image_url=_attempt_asset_url(item.image_key) if item else None,
     )
 
 
@@ -519,7 +524,7 @@ def create_problem(
     )
     session.commit()
     session.refresh(problem)
-    return _problem_response(problem, target_folder.name)
+    return _problem_response(problem, target_folder.name, session=session)
 
 
 @router.get("/problems", response_model=list[ProblemCreateResponse])
@@ -535,7 +540,7 @@ def list_problems(
     )
     rows = session.exec(statement).all()
     return [
-        _problem_response(problem, folder_name)
+        _problem_response(problem, folder_name, session=session)
         for problem, folder_name in rows
     ]
 
@@ -555,7 +560,7 @@ def delete_problem(
         raise HTTPException(status_code=404, detail="Problem not found")
 
     problem, folder_name = row
-    deleted_problem_response = _problem_response(problem, folder_name)
+    deleted_problem_response = _problem_response(problem, folder_name, session=session)
 
     attempt_ids = session.exec(
         select(Attempt.id).where(
@@ -653,7 +658,7 @@ def move_problem_to_folder(
     )
     session.commit()
     session.refresh(problem)
-    return _problem_response(problem, target_folder.name)
+    return _problem_response(problem, target_folder.name, session=session)
 
 
 @router.patch("/problems/move-batch", response_model=ProblemBatchMoveResponse)

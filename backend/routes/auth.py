@@ -32,6 +32,7 @@ from backend.repositories.auth_repo import (
 from backend.auth.jwt import create_access_token
 from backend.auth.deps import get_current_user
 from backend.models.auth_models import User
+from backend.auth.teacher import is_teacher_email
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -57,6 +58,8 @@ def _clear_refresh_cookie(resp: Response) -> None:
 
 @router.post("/register", response_model=TokenResponse)
 def register(payload: RegisterRequest, resp: Response, session: Session = Depends(get_session)):
+    if is_teacher_email(payload.email):
+        raise HTTPException(status_code=403, detail="Teacher accounts must be provisioned by an administrator.")
     existing = get_user_by_email(session, payload.email)
     if existing:
         raise HTTPException(status_code=409, detail="Email already registered")

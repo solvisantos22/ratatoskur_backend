@@ -177,7 +177,14 @@ def _build_genai_client() -> genai.Client:
 
 
 langfuse = _build_langfuse_client()
-client = _build_genai_client()
+client = None
+
+
+def _get_genai_client() -> genai.Client:
+    global client
+    if client is None:
+        client = _build_genai_client()
+    return client
 
 
 def _trace_event(trace: Any, name: str, metadata: dict[str, Any]) -> None:
@@ -650,7 +657,7 @@ def _call_gemini_route_once(
     if route.thinking_level:
         config["thinking_config"] = {"thinking_level": route.thinking_level}
 
-    resp = client.models.generate_content(
+    resp = _get_genai_client().models.generate_content(
         model=route.model,
         contents=contents,
         config=config,
@@ -1239,7 +1246,7 @@ def call_exam_answer_extraction_with_retry(
     request_id: str | None = None,
 ) -> dict[str, Any]:
     t0 = time.time()
-    response = client.models.generate_content(
+    response = _get_genai_client().models.generate_content(
         model="models/gemini-3-flash-preview",
         contents=[prompt, answer_image],
         config={

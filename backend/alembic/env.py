@@ -26,6 +26,7 @@ if config.config_file_name is not None:
 
 # Import models so SQLModel.metadata is populated for autogenerate.
 from backend.models import auth_models  # noqa: F401
+from backend.models import classroom_models  # noqa: F401
 
 target_metadata = SQLModel.metadata
 
