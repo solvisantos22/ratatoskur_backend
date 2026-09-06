@@ -81,12 +81,23 @@ accounts unless explicitly configured to share a backend.
    immediately after successful upload.
 3. Student signs in to the iPad app, opens **Mínir bekkir**, joins by code,
    chooses a class, opens an assignment set and then chooses an exercise. The teacher's image is loaded into the existing notebook.
-4. Student writes with Apple Pencil and asks for a hint or check. This step needs
-   the real AI key and has to be rehearsed on the actual iPad.
+4. Student writes with Apple Pencil, chooses **Skila til kennara**, and confirms
+   sharing all pages of this exercise. A timestamped receipt appears only after
+   the server stores the snapshot. This step does not call AI or need an AI key.
 5. Teacher opens the set and chooses **Uppfæra**, then inspects that student's
-   submitted handwriting and AI replies. Draft strokes become visible only after
-   submission; the teacher is not watching the canvas live.
+   **Skil til kennara** with its submitted pages and time. Draft strokes become
+   visible only after submission; the teacher is not watching the canvas live.
 6. Reopen the assigned exercise to confirm the same notebook and saved ink remain.
+7. If the real AI key is configured and this has been rehearsed on the actual
+   iPad, demonstrate a hint or check. The teacher sees those under **AI-beiðnir
+   og svör**, separately from direct submissions.
+
+Direct submissions capture all pages at confirmation. Later edits remain local
+until the student chooses **Skila aftur til kennara**; earlier snapshots remain
+available. A retry of the same pending snapshot reuses its submission ID to avoid
+duplicates. The teacher's **Skil** count is the number of exercises with explicit
+submissions, independently of AI requests and correctness. A submission does not
+count as a completed/correct exercise. Personal notebooks cannot use this action.
 
 Progress counts only fully correct `check_solution` responses. Hints, partial
 answers and revealed solutions do not count as completed exercises. **Skoða nánar**
@@ -184,3 +195,20 @@ cream/brown theme. Opening a notebook is not counted as completing it.
 Class responses now include nullable `teacher_name` from the owner's display
 name. Older clients ignore the field and older backends remain readable by the
 new app; no migration is needed.
+
+## Direct submission verification — 6 September 2026
+
+84 backend tests, 47 iOS tests and 7 website tests passed. Website type/lint
+checks and production build passed, as did Debug and Release simulator builds.
+The simulator submitted saved synthetic ink without an AI call; Chrome displayed
+that exact snapshot and its timestamp. Reopening the notebook preserved all seven
+test pen strokes and restored the receipt. The teacher saw one submitted exercise,
+zero AI requests and zero completed exercises. The receipt and image survived a
+local server restart. These are synthetic demo results, not a student evaluation.
+
+Direct submission adds the classroom_submissions table (Alembic
+`b3c8d2e1f6a9`). The launcher applies the known additive local SQLite upgrade and
+preserves existing accounts, assignments and snapshots. Production databases
+must run Alembic migrations. PostgreSQL locking is regression-checked through
+lock timing and dialect compilation; it has not been exercised against a live
+PostgreSQL deployment. Physical-device and live-AI checks remain as listed above.

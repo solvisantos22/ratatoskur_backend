@@ -24,6 +24,8 @@ export type StudentProgress = {
   full_name: string | null;
   completed_count: number;
   attempt_count: number;
+  submission_count?: number;
+  submitted_item_count?: number;
   hint_count: number;
   needs_attention: boolean;
   last_activity: string | null;
@@ -47,7 +49,13 @@ export type Attempt = {
 export type StudentWork = {
   student: { id: string; full_name: string | null };
   assignment: Assignment;
-  items: (Exercise & { problem_id: string | null; attempts: Attempt[] })[];
+  items: (Exercise & { problem_id: string | null; attempts: Attempt[]; submissions?: ClassroomSubmission[] })[];
+};
+export type ClassroomSubmission = {
+  id: string;
+  created_at: string;
+  page_count: number;
+  solution_page_urls: string[];
 };
 export type Me = { id: string; email: string; full_name: string | null };
 export function errorLabel(value: string) {

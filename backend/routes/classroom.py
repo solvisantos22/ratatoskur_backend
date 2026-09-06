@@ -3,9 +3,10 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from io import BytesIO
+import hashlib
 import logging
 import secrets
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -22,6 +23,7 @@ from backend.models.classroom_models import (
     AssignmentItem,
     ClassMembership,
     Classroom,
+    ClassroomSubmission,
     StudentAssignmentItem,
 )
 from backend.routes.problem import _ensure_default_folder, _problem_response
@@ -33,9 +35,11 @@ from backend.schemas.classroom import (
     ClassCreateRequest,
     ClassResponse,
     ClassroomAttemptResponse,
+    ClassroomSubmissionResponse,
     CommonError,
     JoinClassRequest,
     StartItemResponse,
+    SubmissionReceipt,
     StudentAssignmentItemResponse,
     StudentAssignmentResponse,
     StudentIdentity,
@@ -212,6 +216,42 @@ def _linked_attempts(
     if user_id is not None:
         statement = statement.where(StudentAssignmentItem.user_id == user_id)
     return list(session.exec(statement).all())
+
+
+def _submission_links(assignment_id: UUID, user_id: UUID | None = None):
+    """Only the active member's exact, currently owned assignment notebook."""
+    statement = (
+        select(StudentAssignmentItem)
+        .join(Problem, (Problem.id == StudentAssignmentItem.problem_id)
+              & (Problem.user_id == StudentAssignmentItem.user_id))
+        .join(AssignmentItem, AssignmentItem.id == StudentAssignmentItem.item_id)
+        .join(Assignment, Assignment.id == AssignmentItem.assignment_id)
+        .join(ClassMembership, (ClassMembership.class_id == Assignment.class_id)
+              & (ClassMembership.user_id == StudentAssignmentItem.user_id))
+        .join(User, User.id == StudentAssignmentItem.user_id)
+        .where(Assignment.id == assignment_id, User.is_active == True)
+    )
+    if user_id is not None:
+        statement = statement.where(StudentAssignmentItem.user_id == user_id)
+    return statement
+
+
+def _linked_submissions(
+    session: Session, assignment_id: UUID, user_id: UUID | None = None
+) -> list[tuple[StudentAssignmentItem, ClassroomSubmission]]:
+    return list(session.execute(
+        _submission_links(assignment_id, user_id)
+        .add_columns(ClassroomSubmission)
+        .join(ClassroomSubmission,
+              (ClassroomSubmission.student_assignment_item_id == StudentAssignmentItem.id)
+              & (ClassroomSubmission.problem_id == StudentAssignmentItem.problem_id))
+        .order_by(ClassroomSubmission.created_at, ClassroomSubmission.id)
+    ).all())
+
+
+def _submission_receipt(submission: ClassroomSubmission) -> SubmissionReceipt:
+    return SubmissionReceipt(id=submission.id, created_at=_utc(submission.created_at),
+                             page_count=submission.page_count)
 
 
 @router.get("/teacher/classes", response_model=list[ClassResponse])
@@ -410,9 +450,13 @@ def assignment_detail(
     per_student = defaultdict(list)
     for item_id, attempt in rows:
         per_student[attempt.user_id].append((item_id, attempt))
+    per_student_submissions = defaultdict(list)
+    for link, submission in _linked_submissions(session, assignment_id):
+        per_student_submissions[link.user_id].append((link.item_id, submission))
     students = []
     for student in _members(session, classroom.id):
         attempts = per_student[student.id]
+        submissions = per_student_submissions[student.id]
         completed = set()
         attention = {}
         for item_id, attempt in attempts:
@@ -430,9 +474,13 @@ def assignment_detail(
                 completed_count=len(completed),
                 attempt_count=len(attempts),
                 hint_count=sum(attempt.mode == "hint" for _, attempt in attempts),
+                submission_count=len(submissions),
+                submitted_item_count=len({item_id for item_id, _ in submissions}),
                 needs_attention=any(attention.values()),
                 last_activity=max(
-                    (_utc(attempt.created_at) for _, attempt in attempts), default=None
+                    [_utc(attempt.created_at) for _, attempt in attempts]
+                    + [_utc(submission.created_at) for _, submission in submissions],
+                    default=None,
                 ),
             )
         )
@@ -488,6 +536,12 @@ def inspect_student_work(
         for link, problem in _linked_problems(session, assignment_id, user_id)
     }
     attempts = defaultdict(list)
+    submissions = defaultdict(list)
+    for link, submission in _linked_submissions(session, assignment_id, user_id):
+        submissions[link.item_id].append(ClassroomSubmissionResponse(
+            **_submission_receipt(submission).model_dump(),
+            solution_page_urls=[_asset_url(key) for key in submission.solution_page_keys],
+        ))
     for item_id, attempt in _linked_attempts(session, assignment_id, user_id):
         page_keys = (
             attempt.solution_page_keys
@@ -516,6 +570,9 @@ def inspect_student_work(
                 **_item_response(item).model_dump(),
                 problem_id=problems.get(item.id),
                 attempts=attempts[item.id],
+                submissions=submissions[item.id],
+                last_submitted_at=(submissions[item.id][-1].created_at
+                                   if submissions[item.id] else None),
             )
             for item in items
         ],
@@ -573,6 +630,10 @@ def list_student_assignments(
     result = []
     for assignment, classroom in rows:
         items = _items(session, assignment.id)
+        last_submitted = {
+            link.item_id: _utc(submission.created_at)
+            for link, submission in _linked_submissions(session, assignment.id, user.id)
+        }
         problems = {
             link.item_id: problem.id
             for link, problem in _linked_problems(session, assignment.id, user.id)
@@ -584,6 +645,7 @@ def list_student_assignments(
                     StudentAssignmentItemResponse(
                         **_item_response(item).model_dump(),
                         problem_id=problems.get(item.id),
+                        last_submitted_at=last_submitted.get(item.id),
                     )
                     for item in items
                 ],
@@ -689,4 +751,121 @@ def start_assignment_item(
             session=session,
         ),
         image_url=image_url,
+        last_submission=next(
+            (_submission_receipt(submission)
+             for submission_link, submission in reversed(
+                 _linked_submissions(session, assignment_id, user.id))
+             if submission_link.item_id == item_id),
+            None,
+        ),
     )
+
+
+@router.post(
+    "/student/assignments/{assignment_id}/items/{item_id}/submissions",
+    response_model=SubmissionReceipt,
+)
+async def submit_assignment_item(
+    assignment_id: UUID,
+    item_id: UUID,
+    problem_id: UUID = Form(...),
+    submission_id: UUID = Form(...),
+    solution_pages: list[UploadFile] = File(...),
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    statement = _submission_links(assignment_id, user.id).where(
+        StudentAssignmentItem.item_id == item_id,
+        StudentAssignmentItem.problem_id == problem_id,
+    )
+    # Reject unrelated notebooks before reading uploads, without holding locks
+    # across file reads (spooled uploads yield to a worker thread).
+    link = session.exec(statement).first()
+    if link is None:
+        raise HTTPException(status_code=404, detail="Assignment notebook not found")
+    link_id = link.id
+    validated = await _validated_images(solution_pages)
+    digest = hashlib.sha256()
+    for data in validated:
+        digest.update(len(data).to_bytes(8, "big"))
+        digest.update(data)
+    content_sha256 = digest.hexdigest()
+
+    def matching_receipt(existing: ClassroomSubmission) -> SubmissionReceipt:
+        if (existing.student_assignment_item_id != link_id
+                or existing.problem_id != problem_id
+                or existing.content_sha256 != content_sha256):
+            raise HTTPException(status_code=409, detail="Submission ID was already used for different work")
+        return _submission_receipt(existing)
+
+    # Unique request prefixes prevent a losing concurrent retry from deleting or
+    # overwriting the winning request's immutable images.
+    prefix = f"classroom-submissions/{link_id}/{submission_id}/{uuid4()}"
+    keys = [f"{prefix}/{index}.jpg" for index in range(len(validated))]
+    submission = ClassroomSubmission(
+        id=submission_id, student_assignment_item_id=link_id, problem_id=problem_id,
+        content_sha256=content_sha256, page_count=len(keys), solution_page_keys=keys,
+    )
+    uploaded = []
+    commit_started = False
+    try:
+        # All awaited work is finished. Recheck the exact link and lock only this
+        # member's notebook/account rows, never the shared assignment. Everything
+        # through commit/rollback below is synchronous, so a competing request
+        # cannot block the loop while this request is suspended holding locks.
+        # SQLite rechecks again after claiming its write lock below.
+        if session.exec(statement.with_for_update(
+            of=(StudentAssignmentItem, Problem, ClassMembership, User)
+        )).first() is None:
+            raise HTTPException(status_code=404, detail="Assignment notebook not found")
+        existing = session.get(ClassroomSubmission, submission_id)
+        if existing is not None:
+            try:
+                return matching_receipt(existing)
+            finally:
+                # Release locks before response/dependency handling can yield.
+                session.rollback()
+        _asset_url(keys[0])
+        for key, data in zip(keys, validated):
+            uploaded.append(key)
+            upload_bytes(key=key, data=data, content_type="image/jpeg")
+        claimed = session.execute(
+            update(StudentAssignmentItem)
+            .where(StudentAssignmentItem.id == link_id,
+                   StudentAssignmentItem.problem_id == problem_id)
+            .values(problem_id=problem_id)
+            .execution_options(synchronize_session=False)
+        ).rowcount
+        if claimed != 1 or session.exec(statement).first() is None:
+            raise HTTPException(status_code=404, detail="Assignment notebook not found")
+        session.add(submission)
+        session.flush()
+        # Materialize before commit; the receipt is only returned after success.
+        receipt = _submission_receipt(submission)
+        commit_started = True
+        session.commit()
+    except Exception as exc:
+        session.rollback()
+        try:
+            existing = session.get(ClassroomSubmission, submission_id)
+        except Exception:
+            # If commit status cannot be read, retaining possible orphaned images
+            # is safer than deleting images a committed snapshot may reference.
+            logger.exception("Could not resolve classroom submission commit status")
+            raise HTTPException(status_code=502, detail="Could not confirm submission. Please retry with the same submission ID.") from exc
+        protected_keys = set(existing.solution_page_keys) if existing else set()
+        for key in uploaded:
+            if key not in protected_keys:
+                try:
+                    delete_bytes(key=key)
+                except Exception:
+                    logger.exception("Could not clean up an unpublished submission image")
+        if existing is not None and (commit_started or isinstance(exc, IntegrityError)):
+            return matching_receipt(existing)
+        if isinstance(exc, HTTPException):
+            raise
+        if isinstance(exc, R2ConfigurationError):
+            raise HTTPException(status_code=503, detail=f"Artifact storage is not configured: {exc}") from exc
+        logger.exception("Could not save classroom submission")
+        raise HTTPException(status_code=502, detail="Could not save submission. Please try again.") from exc
+    return receipt

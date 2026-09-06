@@ -34,23 +34,28 @@ def initialize_local_database(database_url: str) -> None:
         existing = set(inspect(engine).get_table_names())
         if not existing:
             SQLModel.metadata.create_all(engine)
-        elif not set(SQLModel.metadata.tables) <= existing:
-            raise ValueError(
-                "Existing database has a different schema. Use migrations or choose a new local database path."
-            )
         else:
             # Validate first; never silently patch an unrelated/partial schema.
+            missing_tables = set(SQLModel.metadata.tables) - existing
+            if missing_tables - {"classroom_submissions"}:
+                raise ValueError(
+                    "Existing database has a different schema. Use migrations or choose a new local database path."
+                )
             missing_columns = {}
             for name, table in SQLModel.metadata.tables.items():
+                if name in missing_tables:
+                    continue
                 columns = {column["name"] for column in inspect(engine).get_columns(name)}
                 missing = set(table.columns.keys()) - columns
                 if missing:
                     missing_columns[name] = missing
             if missing_columns and missing_columns != {"assignments": {"allow_reveal"}}:
                 raise ValueError("Existing database has a different schema. Use migrations or choose a new local database path.")
-            if missing_columns:
-                with engine.begin() as connection:
+            with engine.begin() as connection:
+                if missing_columns:
                     connection.exec_driver_sql("ALTER TABLE assignments ADD COLUMN allow_reveal BOOLEAN NOT NULL DEFAULT 1")
+                if "classroom_submissions" in missing_tables:
+                    SQLModel.metadata.tables["classroom_submissions"].create(connection)
     finally:
         engine.dispose()
 

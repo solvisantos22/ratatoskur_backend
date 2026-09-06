@@ -46,6 +46,7 @@ class AssignmentItemResponse(BaseModel):
 
 class StudentAssignmentItemResponse(AssignmentItemResponse):
     problem_id: UUID | None = None
+    last_submitted_at: datetime | None = None
 
 
 class StudentAssignmentResponse(AssignmentSummary):
@@ -58,6 +59,8 @@ class StudentProgress(BaseModel):
     completed_count: int
     attempt_count: int
     hint_count: int
+    submission_count: int = 0
+    submitted_item_count: int = 0
     needs_attention: bool
     last_activity: datetime | None
 
@@ -85,8 +88,19 @@ class ClassroomAttemptResponse(BaseModel):
     solution_page_urls: list[str]
 
 
+class SubmissionReceipt(BaseModel):
+    id: UUID
+    created_at: datetime
+    page_count: int
+
+
+class ClassroomSubmissionResponse(SubmissionReceipt):
+    solution_page_urls: list[str]
+
+
 class StudentWorkItem(StudentAssignmentItemResponse):
     attempts: list[ClassroomAttemptResponse]
+    submissions: list[ClassroomSubmissionResponse] = Field(default_factory=list)
 
 
 class StudentIdentity(BaseModel):
@@ -103,3 +117,4 @@ class StudentWorkResponse(BaseModel):
 class StartItemResponse(BaseModel):
     problem: ProblemCreateResponse
     image_url: str
+    last_submission: SubmissionReceipt | None = None

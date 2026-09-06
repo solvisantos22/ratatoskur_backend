@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, Column, DateTime, String, UniqueConstraint, true
+from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, JSON, String, UniqueConstraint, true
 from sqlmodel import Field, SQLModel
 
 from backend.models.auth_models import utcnow
@@ -71,4 +71,30 @@ class StudentAssignmentItem(SQLModel, table=True):
     )
     __table_args__ = (
         UniqueConstraint("item_id", "user_id", name="uq_student_assignment_item"),
+    )
+
+
+class ClassroomSubmission(SQLModel, table=True):
+    """An explicit immutable snapshot, independent of AI attempts and analytics."""
+
+    __tablename__ = "classroom_submissions"
+    # Client-generated retry identity. A different UUID creates another snapshot.
+    id: UUID = Field(primary_key=True)
+    student_assignment_item_id: UUID = Field(
+        foreign_key="student_assignment_items.id", index=True
+    )
+    # Preserve snapshots if the notebook is deleted; a cleared/replaced link cannot
+    # expose old work through another notebook.
+    problem_id: UUID | None = Field(
+        default=None, foreign_key="problems.id", ondelete="SET NULL", index=True
+    )
+    content_sha256: str = Field(sa_column=Column(String(64), nullable=False))
+    page_count: int
+    solution_page_keys: list[str] = Field(sa_column=Column(JSON, nullable=False))
+    created_at: datetime = Field(
+        default_factory=utcnow,
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+    )
+    __table_args__ = (
+        CheckConstraint("page_count >= 1 AND page_count <= 12", name="ck_submission_page_count"),
     )

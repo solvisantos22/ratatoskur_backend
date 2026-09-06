@@ -773,7 +773,7 @@ function AssignmentView({
     (student) => student.needs_attention,
   ).length;
   const submitted = overview.students.filter(
-    (student) => student.attempt_count > 0,
+    (student) => student.attempt_count > 0 || (student.submission_count ?? 0) > 0,
   ).length;
   return (
     <>
@@ -806,7 +806,8 @@ function AssignmentView({
         <h2>Framvinda nemenda</h2>
         <p className="quiet">
           Framvinda telur dæmi sem AI hefur metið að fullu rétt við yfirferð.
-          Þetta er ekki einkunn eða staðfest hæfnimat.
+          Skil telja dæmi sem nemandinn hefur skilað beint til kennara. Skil
+          staðfesta ekki rétta lausn; framvinda er ekki einkunn eða staðfest hæfnimat.
         </p>
         {overview.students.length ? (
           <Table>
@@ -814,7 +815,8 @@ function AssignmentView({
               <TableRow>
                 <TableHead>Nemandi</TableHead>
                 <TableHead>Framvinda</TableHead>
-                <TableHead>Innsendingar</TableHead>
+                <TableHead>Skil</TableHead>
+                <TableHead>AI-beiðnir</TableHead>
                 <TableHead>Vísbendingar</TableHead>
                 <TableHead>Staða</TableHead>
                 <TableHead>
@@ -846,6 +848,7 @@ function AssignmentView({
                       />
                     </div>
                   </TableCell>
+                  <TableCell>{student.submitted_item_count ?? 0} / {overview.items.length}</TableCell>
                   <TableCell>{student.attempt_count}</TableCell>
                   <TableCell>{student.hint_count}</TableCell>
                   <TableCell>
@@ -854,9 +857,11 @@ function AssignmentView({
                     >
                       {student.needs_attention
                         ? 'Skoða nánar'
-                        : student.attempt_count
-                          ? 'Vinna hafin'
-                          : 'Engin innsending'}
+                        : (student.submission_count ?? 0) > 0
+                          ? 'Skilað til kennara'
+                          : student.attempt_count
+                            ? 'Vinna hafin'
+                            : 'Engin innsending'}
                     </span>
                   </TableCell>
                   <TableCell>
@@ -927,7 +932,7 @@ function AssignmentView({
 function WorkView({ work }: { work: StudentWork }) {
   return (
     <>
-      <p className="intro">{work.assignment.title} · Innsendingar og AI-svör</p>
+      <p className="intro">{work.assignment.title} · Skil og AI-svör</p>
       {work.items.map((item) => (
         <section key={item.id} className="surface work-item">
           <div className="exercise-original">
@@ -938,11 +943,30 @@ function WorkView({ work }: { work: StudentWork }) {
             </a>
           </div>
           <div className="attempts">
-            <h3>Vinna nemandans</h3>
+            <h3>Skil til kennara</h3>
+            <p className="quiet">Afrit af vinnu við skil. Síðari breytingar á tæki nemandans birtast þegar nemandinn skilar aftur. Skil hafa ekki verið metin af AI.</p>
+            {item.submissions?.length ? (
+              item.submissions.map((submission, index) => (
+                <article className="attempt" key={submission.id}>
+                  <div className="attempt-heading">
+                    <strong>Skil {index + 1} · {submission.page_count === 1 ? '1 blað' : `${submission.page_count} blöð`}</strong>
+                    <time dateTime={submission.created_at}>{when(submission.created_at)}</time>
+                  </div>
+                  <div className="handwriting-pages">
+                    {submission.solution_page_urls.map((url, page) => (
+                      <a key={url} href={url} target="_blank" rel="noreferrer">
+                        <img src={url} loading="lazy" alt={`Skil ${index + 1}, handskrifuð úrlausn, síða ${page + 1}`} />
+                      </a>
+                    ))}
+                  </div>
+                </article>
+              ))
+            ) : <p className="empty-note">Engin bein skil til kennara enn.</p>}
+            <h3>AI-beiðnir og svör</h3>
             {!item.attempts.length ? (
-              <Blank title="Engin innsending enn">
-                Handskrifuð vinna og svör birtast eftir að nemandinn sendir inn
-                úr appinu.
+              <Blank title="Engin AI-beiðni enn">
+                Hér birtast vísbendingar og yfirferð ásamt handskriftinni sem
+                nemandinn sendi með AI-beiðninni.
               </Blank>
             ) : (
               item.attempts.map((attempt, index) => (
