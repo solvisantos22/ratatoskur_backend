@@ -188,6 +188,25 @@ def test_registration_cannot_claim_teacher_email(classroom_api, monkeypatch):
     assert response.status_code == 403
 
 
+@pytest.mark.parametrize("display_name,expected", [("  Sýnikennari  ", "Sýnikennari"), (None, None), ("   ", None)])
+def test_class_home_exposes_owner_display_name_without_email_fallback(classroom_api, display_name, expected):
+    client, session, users, _ = classroom_api
+    users["teacher"].full_name = display_name
+    session.add(users["teacher"])
+    session.commit()
+    response = client.post("/teacher/classes", json={"name": "Stærðfræði 8.B"}, headers=auth(users, "teacher"))
+    assert response.status_code == 200
+    classroom = response.json()
+    assert classroom["teacher_name"] == expected
+    joined = client.post("/student/classes/join", json={"join_code": classroom["join_code"]}, headers=auth(users, "student"))
+    assert joined.status_code == 200
+    assert joined.json()["teacher_name"] == expected
+    listed = client.get("/student/classes", headers=auth(users, "student"))
+    assert listed.json()[0]["teacher_name"] == expected
+    assert users["teacher"].email not in listed.text
+    assert client.get("/student/classes", headers=auth(users, "outsider")).json() == []
+
+
 def test_query_without_gemini_has_clear_configuration_failure(
     classroom_api, monkeypatch
 ):

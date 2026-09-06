@@ -449,7 +449,7 @@ function TeacherWorkspace() {
               <span className="eyebrow">Bekkjarkóði</span>
               <div className="join-code">{classroom.join_code}</div>
               <p>
-                Nemendur slá kóðann inn undir „Bekkurinn minn“ í iPad-appinu.
+                Nemendur slá kóðann inn undir „Mínir bekkir“ í iPad-appinu.
               </p>
               {copyFailed && (
                 <output>

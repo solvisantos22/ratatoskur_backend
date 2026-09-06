@@ -76,11 +76,14 @@ def _members(session: Session, class_id: UUID) -> list[User]:
 
 
 def _class_response(session: Session, classroom: Classroom) -> ClassResponse:
+    teacher = session.get(User, classroom.teacher_id)
+    teacher_name = (teacher.full_name or "").strip() if teacher else ""
     return ClassResponse(
         id=classroom.id,
         name=classroom.name,
         join_code=classroom.join_code,
         student_count=len(_members(session, classroom.id)),
+        teacher_name=teacher_name or None,
     )
 
 

@@ -79,8 +79,8 @@ accounts unless explicitly configured to share a backend.
    New sets in the website default to hints and checks. Enable **Leyfa fullar
    lausnir** to permit full worked solutions. The set becomes available
    immediately after successful upload.
-3. Student signs in to the iPad app, opens **Bekkurinn minn**, joins by code and
-   opens an exercise. The teacher's image is loaded into the existing notebook.
+3. Student signs in to the iPad app, opens **Mínir bekkir**, joins by code,
+   chooses a class, opens an assignment set and then chooses an exercise. The teacher's image is loaded into the existing notebook.
 4. Student writes with Apple Pencil and asks for a hint or check. This step needs
    the real AI key and has to be rehearsed on the actual iPad.
 5. Teacher opens the set and chooses **Uppfæra**, then inspects that student's
@@ -171,3 +171,16 @@ pnpm build
 kept unchanged; the starter's whole-catalog lint has pre-existing findings.
 The optional read-only WebMCP class-list tool has not been validated in a supported
 browser context and is not required for this demo.
+
+## Class homes in the iPad app
+
+Mínir bekkir opens an overview of joined classes. A class home shows the teacher
+display name when available and that class's assignment sets. Each set has its
+own exercise list. Switching classes returns to the selected class home and
+preserves saved notebook work. A delayed response from another class or set
+cannot reopen the previous exercise. All class screens use Ratatoskur's existing
+cream/brown theme. Opening a notebook is not counted as completing it.
+
+Class responses now include nullable `teacher_name` from the owner's display
+name. Older clients ignore the field and older backends remain readable by the
+new app; no migration is needed.

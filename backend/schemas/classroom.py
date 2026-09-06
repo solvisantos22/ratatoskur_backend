@@ -19,6 +19,7 @@ class ClassResponse(BaseModel):
     name: str
     join_code: str
     student_count: int
+    teacher_name: str | None = None
 
 
 class AssignmentSummary(BaseModel):
