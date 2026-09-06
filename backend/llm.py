@@ -26,9 +26,9 @@ load_dotenv(Path(__file__).resolve().parent / ".env")
 
 logger = logging.getLogger(__name__)
 
-# Gemini 3 Flash Preview paid-tier rates used elsewhere in this project docs.
-INPUT_COST_PER_1M_TOKENS_USD = float(os.getenv("INPUT_COST_PER_1M_TOKENS_USD", "0.50"))
-OUTPUT_COST_PER_1M_TOKENS_USD = float(os.getenv("OUTPUT_COST_PER_1M_TOKENS_USD", "3.00"))
+# Gemini 3.8 Flash paid-tier rates (valid through 2026-12-31; both double on 2027-01-01).
+INPUT_COST_PER_1M_TOKENS_USD = float(os.getenv("INPUT_COST_PER_1M_TOKENS_USD", "0.75"))
+OUTPUT_COST_PER_1M_TOKENS_USD = float(os.getenv("OUTPUT_COST_PER_1M_TOKENS_USD", "3.75"))
 
 # Alert if estimated per-call cost jumps above this delta compared to previous call.
 COST_SPIKE_THRESHOLD_USD = float(os.getenv("COST_SPIKE_THRESHOLD_USD", "0.005"))
@@ -40,6 +40,7 @@ LLM_ROUTING_ENABLED = os.getenv("LLM_ROUTING_ENABLED", "true").strip().lower() i
 LLM_ROUTE_MAX_WORKERS = int(os.getenv("LLM_ROUTE_MAX_WORKERS", "8"))
 LLM_MAX_RETRIES_PER_ROUTE = int(os.getenv("LLM_MAX_RETRIES_PER_ROUTE", "2"))
 LLM_PROVIDER_HTTP_TIMEOUT_SECONDS = float(os.getenv("LLM_PROVIDER_HTTP_TIMEOUT_SECONDS", "60"))
+LLM_GEMINI_MODEL = os.getenv("LLM_GEMINI_MODEL", "gemini-3.8-flash")
 LLM_OPENAI_MODEL = os.getenv("LLM_OPENAI_MODEL", "gpt-5-mini")
 LLM_OPENAI_REASONING_EFFORT = os.getenv("LLM_OPENAI_REASONING_EFFORT", "low")
 LLM_ANTHROPIC_MODEL = os.getenv("LLM_ANTHROPIC_MODEL", "claude-3-5-haiku-20241022")
@@ -918,7 +919,7 @@ def _call_model_with_retry_internal(
     sol_images: Sequence[Any],
     mode: str,
     response_schema: type[BaseModel],
-    model_name: str = "gemini-3-flash-preview",
+    model_name: str = LLM_GEMINI_MODEL,
     thinking_level: str | None = "medium",
     max_retries: int = 5,
     regenerate: bool = False,
@@ -1165,7 +1166,7 @@ def call_legibility_with_retry(
         sol_images=sol_images,
         mode=mode,
         response_schema=LegibilityResponse,
-        model_name="gemini-3-flash-preview",
+        model_name=LLM_GEMINI_MODEL,
         thinking_level="low",
         max_retries=max_retries,
         regenerate=regenerate,
@@ -1196,7 +1197,7 @@ def call_mode_v3_with_retry(
         sol_images=sol_images,
         mode=mode,
         response_schema=ModeV3Response,
-        model_name="gemini-3-flash-preview",
+        model_name=LLM_GEMINI_MODEL,
         thinking_level="medium",
         max_retries=max_retries,
         regenerate=regenerate,
@@ -1227,7 +1228,7 @@ def call_deferred_error_with_retry(
         sol_images=sol_images,
         mode=mode,
         response_schema=DeferredErrorResponse,
-        model_name="gemini-3-flash-preview",
+        model_name=LLM_GEMINI_MODEL,
         thinking_level="high",
         max_retries=max_retries,
         regenerate=regenerate,
@@ -1247,7 +1248,7 @@ def call_exam_answer_extraction_with_retry(
 ) -> dict[str, Any]:
     t0 = time.time()
     response = _get_genai_client().models.generate_content(
-        model="models/gemini-3-flash-preview",
+        model=f"models/{LLM_GEMINI_MODEL}",
         contents=[prompt, answer_image],
         config={
             "response_mime_type": "application/json",
@@ -1260,7 +1261,7 @@ def call_exam_answer_extraction_with_retry(
         "response_text": response.text,
         "prompt": prompt,
         "mode": "exam_answer_extraction",
-        "model_name": "gemini:models/gemini-3-flash-preview",
+        "model_name": f"gemini:models/{LLM_GEMINI_MODEL}",
         "timestamp": datetime.now(),
         "latency_seconds": latency,
         "request_id": request_id,
@@ -1290,7 +1291,7 @@ def call_model_with_retry(
         sol_images=sol_images,
         mode=mode,
         response_schema=LLMResponse,
-        model_name="gemini-3-flash-preview",
+        model_name=LLM_GEMINI_MODEL,
         thinking_level="medium",
         max_retries=max_retries,
         regenerate=regenerate,
