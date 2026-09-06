@@ -9,6 +9,7 @@ export type Assignment = {
   class_id: string;
   class_name: string;
   title: string;
+  allow_reveal: boolean;
   item_count: number;
   created_at: string;
 };

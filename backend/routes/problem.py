@@ -52,7 +52,7 @@ from backend.schemas.problem import (
     UserStatsSummaryResponse,
 )
 from backend.storage.r2 import R2ConfigurationError, presigned_get_url
-from backend.repositories.classroom_repo import assignment_item_for_problem
+from backend.repositories.classroom_repo import assignment_for_problem, assignment_item_for_problem
 
 router = APIRouter(tags=["problem"])
 logger = logging.getLogger(__name__)
@@ -182,6 +182,7 @@ def _validate_parent_folder(
 
 def _problem_response(problem: Problem, folder_name: str | None, *, session: Session) -> ProblemCreateResponse:
     item = assignment_item_for_problem(session, problem_id=problem.id, user_id=problem.user_id)
+    assignment = assignment_for_problem(session, problem_id=problem.id, user_id=problem.user_id)
     return ProblemCreateResponse(
         id=problem.id,
         user_id=problem.user_id,
@@ -193,6 +194,7 @@ def _problem_response(problem: Problem, folder_name: str | None, *, session: Ses
         assignment_id=item.assignment_id if item else None,
         assignment_item_id=item.id if item else None,
         assignment_image_url=_attempt_asset_url(item.image_key) if item else None,
+        assignment_allow_reveal=assignment.allow_reveal if assignment else None,
     )
 
 

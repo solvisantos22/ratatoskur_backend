@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, StrictBool
 
 from backend.schemas.problem import ProblemCreateResponse
 
@@ -26,8 +26,14 @@ class AssignmentSummary(BaseModel):
     class_id: UUID
     class_name: str
     title: str
+    allow_reveal: bool = True
     item_count: int
     created_at: datetime
+
+
+class AssignmentPolicyUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    allow_reveal: StrictBool
 
 
 class AssignmentItemResponse(BaseModel):

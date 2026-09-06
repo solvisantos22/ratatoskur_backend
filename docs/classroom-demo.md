@@ -1,9 +1,9 @@
 # Local classroom demo
 
-Use the regular local repositories on `feature/teacher-classroom`. Discuss the
+Use the regular local repositories on `main`. Discuss the
 change here, edit/check locally, and review the iPad app in Xcode. Pull incoming
 team changes before work and push checked milestones regularly so Jóhannes can
-use them. Keep unfinished device review explicit on the shared feature branch.
+use them. Merge checked milestones into `main` and keep unfinished device review explicit.
 Notion remains the place for product decisions and meeting materials.
 
 ## Start on this computer
@@ -21,6 +21,9 @@ also detects the Codex bundled runtimes when present.
 
 The first launch creates `backend/.env` and `.local/classroom.db`. These files
 stay outside Git. It creates no accounts and does not invent AI responses.
+The launcher also applies the known additive assignment-policy upgrade to an
+existing local classroom database, preserving its accounts and assignments.
+It refuses unrelated incomplete schemas. PostgreSQL uses Alembic migrations.
 
 Provision the teacher once, using their chosen email and name:
 
@@ -73,7 +76,9 @@ accounts unless explicitly configured to share a backend.
 1. Teacher signs in, creates one class and shares the class code.
 2. Teacher uploads a named exercise set: one problem per image, PNG/JPEG,
    1–12 images, up to 7 MB each and 30 MB combined (16 million pixels per image).
-   The set becomes available immediately after successful upload.
+   New sets in the website default to hints and checks. Enable **Leyfa fullar
+   lausnir** to permit full worked solutions. The set becomes available
+   immediately after successful upload.
 3. Student signs in to the iPad app, opens **Bekkurinn minn**, joins by code and
    opens an exercise. The teacher's image is loaded into the existing notebook.
 4. Student writes with Apple Pencil and asks for a hint or check. This step needs
@@ -90,6 +95,22 @@ or grade. Common-error summaries use recorded classifications and retain the
 existing analytics consent rules; an empty summary does not mean no mistakes.
 Image links expire after 15 minutes; **Uppfæra** obtains fresh links.
 
+## Teacher control of full solutions
+
+On an assignment overview, change **Leyfa fullar lausnir** and choose **Vista
+stillingu**. The displayed current policy changes only after a successful save.
+Only that class's teacher can change it. Disabling full solutions blocks future
+`reveal` requests on the backend, including requests from older apps and already
+open notebooks. Hints and checks remain available; personal notebooks and prior
+responses are unchanged. This controls the full-solution action, not every answer
+that an AI response might contain.
+
+The iPad respects the policy on ordinary and classroom notebook opens, refreshes
+it when returning to the app, and changes a saved blocked Reveal selection to
+Hint without losing ink. A server rejection also stops repeated Reveal retries.
+Existing assignments retain their previous enabled setting after the migration.
+Older API clients that omit `allow_reveal` retain the previous creation behavior.
+
 ## What is verified, and what still needs review
 
 Automated backend tests cover classroom ownership, membership, image validation,
@@ -105,10 +126,19 @@ routing, credential separation and draft preservation. A real iOS client also
 completed login, joining, exercise opening, image download and notebook reopening
 against a disposable local backend without an AI call.
 
-Final checks on 5 September 2026: **46 backend tests, 6 website tests and 16 iOS
-tests passed**, along with website type/lint checks, the website production build
-and the iOS Release simulator build. The combined launcher served both endpoints
-through this laptop's Wi-Fi address; another device has not yet checked that path.
+Checks for the classroom workflow and teacher solution control on 5–6 September
+2026: **55 backend tests, 7 website tests and 25 iOS tests passed**, along with
+website type/lint checks, the website production build and the iOS Release
+simulator build. Tests cover ownership, updated policy enforcement, migration
+preservation, restored handwriting and recovery from a blocked request, including
+older responses with no policy metadata. A real HTTP check through the teacher
+website saved and reloaded the policy, preserved exercises and restored the
+original setting. The existing local database upgrade preserved stored accounts
+and assignments. These checks made no live AI calls.
+
+The combined launcher served both endpoints through this laptop's Wi-Fi address;
+another device has not yet checked that path. The address can change between
+sessions; use the addresses printed by the launcher.
 
 Saved handwriting is now separated by backend address and account. Older,
 unscoped drafts are preserved, but cannot be safely assigned to an account

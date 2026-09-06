@@ -28,6 +28,7 @@ from backend.routes.problem import _ensure_default_folder, _problem_response
 from backend.schemas.classroom import (
     AssignmentDetail,
     AssignmentItemResponse,
+    AssignmentPolicyUpdate,
     AssignmentSummary,
     ClassCreateRequest,
     ClassResponse,
@@ -128,6 +129,7 @@ def _summary(
         class_id=classroom.id,
         class_name=classroom.name,
         title=assignment.title,
+        allow_reveal=assignment.allow_reveal,
         item_count=len(items if items is not None else _items(session, assignment.id)),
         created_at=_utc(assignment.created_at),
     )
@@ -327,6 +329,7 @@ async def create_assignment(
     class_id: UUID,
     title: str = Form(..., min_length=1, max_length=255),
     images: list[UploadFile] = File(...),
+    allow_reveal: bool = Form(True),
     session: Session = Depends(get_session),
     teacher: User = Depends(get_teacher),
 ):
@@ -337,7 +340,7 @@ async def create_assignment(
             status_code=422, detail="Assignment title must not be empty"
         )
     validated = await _validated_images(images)
-    assignment = Assignment(class_id=class_id, title=title)
+    assignment = Assignment(class_id=class_id, title=title, allow_reveal=allow_reveal)
     items = [
         AssignmentItem(
             assignment_id=assignment.id,
@@ -376,6 +379,20 @@ async def create_assignment(
             status_code=502, detail="Could not save the assignment. Please try again."
         ) from exc
     return _summary(session, assignment, classroom, items)
+
+
+@router.patch("/teacher/assignments/{assignment_id}", response_model=AssignmentSummary)
+def update_assignment_policy(
+    assignment_id: UUID,
+    payload: AssignmentPolicyUpdate,
+    session: Session = Depends(get_session),
+    teacher: User = Depends(get_teacher),
+):
+    assignment, classroom = _owned_assignment(session, assignment_id, teacher)
+    assignment.allow_reveal = payload.allow_reveal
+    session.add(assignment)
+    session.commit()
+    return _summary(session, assignment, classroom)
 
 
 @router.get("/teacher/assignments/{assignment_id}", response_model=AssignmentDetail)

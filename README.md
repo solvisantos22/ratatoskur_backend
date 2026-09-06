@@ -34,8 +34,9 @@ commits and check the combined result; do not force-push or rewrite teammates'
 history. Bring relevant updates from `main` into feature branches as work proceeds.
 
 Commit and push small, checked milestones regularly, including at the end of a
-work session. Share work on feature branches while Xcode/device review is pending,
-and describe any checks still outstanding. Coordinate API changes across both
+work session. Pull incoming `main` changes, merge each checked milestone into
+`main`, and push it so teammates receive the current work. Keep outstanding
+Xcode/device checks explicit. Coordinate API changes across both
 repositories. Keep product decisions and meeting materials in Notion.
 
 ## Project Structure

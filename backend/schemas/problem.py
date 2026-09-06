@@ -20,6 +20,7 @@ class ProblemCreateResponse(BaseModel):
     assignment_id: UUID | None = None
     assignment_item_id: UUID | None = None
     assignment_image_url: str | None = None
+    assignment_allow_reveal: bool | None = None
 
 
 class FolderCreateRequest(BaseModel):

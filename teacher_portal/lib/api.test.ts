@@ -1,7 +1,7 @@
 import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { api, setToken, restoreSession, logoutSession } from './api.ts';
-import { GET, POST } from '../app/api/backend/[...path]/route.ts';
+import { GET, POST, PATCH } from '../app/api/backend/[...path]/route.ts';
 const originalFetch = globalThis.fetch;
 
 await test('logout waits for cookie rotation and blocks new refreshes until it finishes', async () => {
@@ -145,4 +145,21 @@ await test('proxy refuses foreign origins and paths outside the allowed API', as
     { params: Promise.resolve({ path: ['private'] }) },
   );
   assert.equal(missing.status, 404);
+});
+
+await test('assignment policy PATCH preserves false and teacher authorization', async () => {
+  globalThis.fetch = async (_url, options) => {
+    assert.equal(options?.method, 'PATCH');
+    assert.equal(new Headers(options?.headers).get('authorization'), 'Bearer teacher');
+    assert.deepEqual(await new Response(options?.body).json(), { allow_reveal: false });
+    return Response.json({ id: 'assignment', allow_reveal: false });
+  };
+  const response = await PATCH(new Request(
+    'http://localhost:3000/api/backend/teacher/assignments/assignment', {
+      method: 'PATCH',
+      headers: { origin: 'http://localhost:3000', authorization: 'Bearer teacher', 'content-type': 'application/json' },
+      body: JSON.stringify({ allow_reveal: false }),
+    }), { params: Promise.resolve({ path: ['teacher', 'assignments', 'assignment'] }) });
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { id: 'assignment', allow_reveal: false });
 });

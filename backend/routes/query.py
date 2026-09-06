@@ -29,7 +29,7 @@ from backend.models.auth_models import (
     User,
 )
 from backend.storage.r2 import R2ConfigurationError, download_bytes, upload_bytes
-from backend.repositories.classroom_repo import assignment_item_for_problem
+from backend.repositories.classroom_repo import assignment_for_problem, assignment_item_for_problem
 
 router = APIRouter(tags=["query"])
 
@@ -1170,6 +1170,13 @@ async def query(
     ).first()
     if not problem:
         raise HTTPException(status_code=404, detail="Problem not found")
+
+    assignment = assignment_for_problem(session, problem_id=problem.id, user_id=user.id)
+    if assignment and mode == "reveal" and not assignment.allow_reveal:
+        raise HTTPException(
+            status_code=403,
+            detail="Kennari hefur lokað á fullar lausnir í þessu verkefnasetti. Þú getur fengið vísbendingu eða látið yfirfara lausnina þína.",
+        )
 
     if not os.getenv("GEMINI_API_KEY", "").strip():
         raise HTTPException(status_code=503, detail="AI feedback is not configured: set GEMINI_API_KEY on the backend.")

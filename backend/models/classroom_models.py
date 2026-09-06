@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import Column, DateTime, String, UniqueConstraint
+from sqlalchemy import Boolean, Column, DateTime, String, UniqueConstraint, true
 from sqlmodel import Field, SQLModel
 
 from backend.models.auth_models import utcnow
@@ -36,6 +36,7 @@ class Assignment(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     class_id: UUID = Field(foreign_key="classrooms.id", index=True)
     title: str = Field(sa_column=Column(String(255), nullable=False))
+    allow_reveal: bool = Field(default=True, sa_column=Column(Boolean, nullable=False, server_default=true()))
     created_at: datetime = Field(
         default_factory=utcnow,
         sa_column=Column(DateTime(timezone=True), nullable=False),

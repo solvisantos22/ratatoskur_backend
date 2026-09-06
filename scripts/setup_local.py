@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Initialize a fresh local SQLite environment; never bootstrap production."""
+"""Initialize local SQLite and apply explicitly supported additive upgrades."""
 
 from __future__ import annotations
 
@@ -36,8 +36,21 @@ def initialize_local_database(database_url: str) -> None:
             SQLModel.metadata.create_all(engine)
         elif not set(SQLModel.metadata.tables) <= existing:
             raise ValueError(
-                "Existing database has a different schema. Local setup never upgrades existing databases; use migrations or choose a new local database path."
+                "Existing database has a different schema. Use migrations or choose a new local database path."
             )
+        else:
+            # Validate first; never silently patch an unrelated/partial schema.
+            missing_columns = {}
+            for name, table in SQLModel.metadata.tables.items():
+                columns = {column["name"] for column in inspect(engine).get_columns(name)}
+                missing = set(table.columns.keys()) - columns
+                if missing:
+                    missing_columns[name] = missing
+            if missing_columns and missing_columns != {"assignments": {"allow_reveal"}}:
+                raise ValueError("Existing database has a different schema. Use migrations or choose a new local database path.")
+            if missing_columns:
+                with engine.begin() as connection:
+                    connection.exec_driver_sql("ALTER TABLE assignments ADD COLUMN allow_reveal BOOLEAN NOT NULL DEFAULT 1")
     finally:
         engine.dispose()
 

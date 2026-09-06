@@ -20,6 +20,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { AssignmentPolicy } from './assignment-policy';
 import {
   Dialog,
   DialogContent,
@@ -432,6 +434,7 @@ function TeacherWorkspace() {
       ) : assignmentId && overview ? (
         <AssignmentView
           overview={overview}
+          onPolicySaved={refresh}
           onStudent={(id) => {
             setLoading(true);
             setError('');
@@ -628,6 +631,7 @@ function CreateAssignment({
   onCreated: (item: Assignment) => void;
 }) {
   const [files, setFiles] = useState<File[]>([]);
+  const [allowReveal, setAllowReveal] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   async function submit(event: SubmitEvent<HTMLFormElement>) {
@@ -650,6 +654,7 @@ function CreateAssignment({
       return;
     }
     body.set('title', title);
+    body.set('allow_reveal', String(allowReveal));
     files.forEach((file) => body.append('images', file));
     setBusy(true);
     try {
@@ -658,6 +663,7 @@ function CreateAssignment({
         { method: 'POST', body },
       );
       setFiles([]);
+      setAllowReveal(false);
       onOpenChange(false);
       onCreated(item);
     } catch (error) {
@@ -673,7 +679,10 @@ function CreateAssignment({
         if (!busy) {
           onOpenChange(value);
           setError('');
-          if (!value) setFiles([]);
+          if (!value) {
+            setFiles([]);
+            setAllowReveal(false);
+          }
         }
       }}
     >
@@ -694,6 +703,22 @@ function CreateAssignment({
               maxLength={255}
               placeholder="T.d. Jöfnur — fyrsta æfing"
             />
+          </div>
+          <div>
+            <div className="policy-choice">
+              <Label htmlFor="new-assignment-allow-reveal">Leyfa fullar lausnir</Label>
+              <Switch
+                id="new-assignment-allow-reveal"
+                checked={allowReveal}
+                onCheckedChange={setAllowReveal}
+                disabled={busy}
+                aria-describedby="new-assignment-policy-explanation"
+              />
+            </div>
+            <p id="new-assignment-policy-explanation" className="quiet">
+              Vísbendingar og yfirferð eru alltaf í boði. Þú getur breytt þessu
+              síðar í verkefnasettinu.
+            </p>
           </div>
           <div className="upload-area">
             <ImagePlus aria-hidden="true" />
@@ -738,9 +763,11 @@ function CreateAssignment({
 function AssignmentView({
   overview,
   onStudent,
+  onPolicySaved,
 }: {
   overview: Overview;
   onStudent: (id: string) => void;
+  onPolicySaved: () => void;
 }) {
   const attention = overview.students.filter(
     (student) => student.needs_attention,
@@ -770,6 +797,11 @@ function AssignmentView({
           </strong>
         </div>
       </div>
+      <AssignmentPolicy
+        key={`${overview.assignment.id}-${overview.assignment.allow_reveal}`}
+        assignment={overview.assignment}
+        onSaved={onPolicySaved}
+      />
       <section className="surface">
         <h2>Framvinda nemenda</h2>
         <p className="quiet">

@@ -361,6 +361,24 @@ footer {
 .surface > h2 {
   margin-bottom: 0.7rem;
 }
+.policy-choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  min-height: 44px;
+}
+.policy-choice label {
+  flex: 1;
+  padding-block: 0.8rem;
+  cursor: pointer;
+}
+.policy-save {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

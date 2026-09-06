@@ -135,6 +135,7 @@ def test_local_setup_refuses_non_sqlite_database():
 
 
 def test_classroom_migration_adds_and_removes_only_feature_tables(tmp_path):
+    from importlib import import_module
     from alembic.migration import MigrationContext
     from alembic.operations import Operations
     from importlib.util import module_from_spec, spec_from_file_location
@@ -150,6 +151,7 @@ def test_classroom_migration_adds_and_removes_only_feature_tables(tmp_path):
     spec = spec_from_file_location("classroom_migration", script)
     migration = module_from_spec(spec)
     spec.loader.exec_module(migration)
+    policy_migration = import_module("backend.alembic.versions.a6d4e2f1b9c0_add_assignment_solution_control")
     assert migration.down_revision == "e8b1d4c3f6a2"
     feature_tables = {
         "classrooms",
@@ -168,6 +170,7 @@ def test_classroom_migration_adds_and_removes_only_feature_tables(tmp_path):
     with engine.begin() as connection:
         with Operations.context(MigrationContext.configure(connection)):
             migration.upgrade()
+            policy_migration.upgrade()
             assert feature_tables <= set(inspect(connection).get_table_names())
             for name in feature_tables:
                 expected = {
@@ -176,6 +179,7 @@ def test_classroom_migration_adds_and_removes_only_feature_tables(tmp_path):
                 assert expected == {
                     column["name"] for column in inspect(connection).get_columns(name)
                 }
+            policy_migration.downgrade()
             migration.downgrade()
             assert not feature_tables & set(inspect(connection).get_table_names())
             assert "users" in inspect(connection).get_table_names()
