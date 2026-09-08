@@ -12,12 +12,26 @@ const { d1, r2 } = hostingConfig;
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === 'seatbelt';
 
+// Localhost is only ever a sensible default while developing. A production
+// build that silently baked in 127.0.0.1 would deploy a Worker whose proxy
+// always answers 502, so require the value explicitly when building.
+const isBuild = process.argv.includes('build');
+const backendURL = process.env.BACKEND_URL ?? 'http://127.0.0.1:8000';
+if (isBuild && !process.env.BACKEND_URL) {
+  throw new Error(
+    'BACKEND_URL must be set when building the teacher portal, e.g. ' +
+      'BACKEND_URL=https://ratatoskur-backend.onrender.com pnpm build',
+  );
+}
+
 const localBindingConfig = {
   main: 'vinext/server/fetch-handler',
   compatibility_flags: ['nodejs_compat'],
   // Cloudflare's local worker does not inherit the parent shell environment.
   // Bind the configured FastAPI address explicitly for the server-only proxy.
-  vars: { BACKEND_URL: process.env.BACKEND_URL || 'http://127.0.0.1:8000' },
+  // Baked into dist/server/wrangler.json at build time, so a deployed Worker
+  // uses whatever BACKEND_URL was set when `pnpm build` ran.
+  vars: { BACKEND_URL: backendURL },
   d1_databases: d1
     ? [
         {
