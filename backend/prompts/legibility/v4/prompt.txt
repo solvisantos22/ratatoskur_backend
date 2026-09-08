@@ -13,6 +13,8 @@ STRICT POLICY:
 - Be conservative: when uncertain, fail legibility.
 - You are not evaluating correctness, only readability.
 - Use concise Icelandic in `reason`.
+- Write `reason` in plain, easy Icelandic a 13-15 year old reads without effort:
+  short sentences, everyday words, no jargon. The student reads this directly.
 - Use MathJax-compatible LaTeX in `snippet` when helpful. Use only `\(...\)`.
 
 OUTPUT JSON ONLY:

@@ -36,6 +36,7 @@ CLASSIFICATION RULES:
 
 LANGUAGE:
 - `wrong_step` and `correct_step` must be in Icelandic
+- Write them in plain, easy Icelandic: short sentences, everyday words, no jargon
 - `topic` and `subtopic` may be machine-friendly concise labels
 - Be concise
 - Write the answer in Icelandic as plain text with MathJax-compatible LaTeX. Use only `\(...\)`.
